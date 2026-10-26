@@ -29,6 +29,10 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
   // 6月のまとめ仕入れ：商品力とお店の種類で決まる「売れる割合」の目安
   function bulkRate(s) { return -0.1 + s.sho / 90 + (s.flags.concept === 'fashion' || s.flags.concept === 'gadget' ? 0.08 : 0); }
 
+  // 1月に辞めたいと言うのはだれか（ユイしかいなければユイ）
+  function quitter(s) { return s.flags.yui && s.staff === 1 ? 'yui' : 'other'; }
+  function leave(fx) { if (quitter(fx.s) === 'yui') fx.flag('yui', false); fx.staff(-1); }
+
   function L(who, face, text) { return { who: who, face: face, text: text }; }
   var N = function (t) { return L(null, null, t); };
   var M = function (face, t) { return L('mio', face, t); };
@@ -313,7 +317,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
         {
           label: '値下げで勝負する', tag: 'attack',
           apply: function (fx) {
-            fx.cost(0.06); fx.stat('shu', 7);
+            fx.cost(0.03); fx.stat('shu', 10); fx.stat('shin', 2);
             if (fx.s.flags.concept === 'general') fx.stat('sho', -3);
             return { face: 'trouble', text: 'お客さんは戻ってきた。でも、安さでは向こうも負けてないし、うちのもうけが減っちゃう…。' };
           }
@@ -407,8 +411,8 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
           apply: function (fx) {
             var r = G.loanRate(fx.s);
             fx.note('100万円を借りて支払う', null);
-            fx.loan('銀行の返済', 1000000, 4, r);
-            fx.note('利息 ' + man(Math.round(1000000 * r / 1000) * 1000), false);
+            var interest = fx.loan('銀行の返済', 1000000, 4, r);
+            fx.note('利息 ' + man(interest), false);
             var why = r <= 0.03 ? 'お店の評判もいいので、低い金利でお貸しできます。' : (r <= 0.08 ? '実績はこれからですので、金利はふつうになります。' : 'まだ信頼の実績が少ないので、金利は高めになってしまいます。');
             return { who: 'saeki', text: '銀行の佐伯です。100万円、お貸ししましょう。' + why + '4か月で返していただく形でいかがですか。' };
           }
@@ -452,12 +456,13 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
       },
       choices: [
         {
-          label: '全品30%引きの大セール', tag: 'attack',
+          label: '全品20%引きの大セール', tag: 'attack',
           apply: function (fx) {
-            fx.mod('visitors', 1.45, 1, '大セール');
-            fx.mod('cost', 0.10, 1, '大きな値引き');
-            fx.stat('sho', -3);
-            return { face: 'surprise', text: 'お客さんがすごい数！…でも1人あたりの金額がぐっと下がって、思ったほど売上は伸びないかも。' };
+            fx.mod('visitors', 1.5, 1, '大セール');
+            fx.mod('unit', 0.88, 1, '値引きで1人あたりの金額が下がった');
+            fx.mod('cost', 0.06, 1, '大きな値引き');
+            fx.stat('sho', -2); fx.stat('shu', 6);
+            return { face: 'surprise', text: 'お客さんがすごい数！初めて来てくれた人も多いよ。…でも値引きのぶん1人あたりの金額が下がって、思ったほど売上は伸びないかも。' };
           }
         },
         {
@@ -473,6 +478,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
             fx.flag('overstock', false);
             if (fx.chance(Math.max(0.1, Math.min(0.9, (fx.s.sho - 35) / 35)))) {
               fx.mod('visitors', 1.3, 1, '福袋');
+              fx.mod('unit', 1.15, 1, '福袋でまとめ買い');
               fx.stat('shu', 5); fx.stat('shin', 3);
               return { face: 'joy', text: '福袋が大人気！まとめて買ってもらえるから、1人あたりの金額も上がったよ。' };
             }
@@ -488,10 +494,14 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
     {
       id: 'm1', month: 1, bg: 'shop', title: 'スタッフが辞めたい', memo: 'hito',
       cond: function (s) { return s.staff > 0; },
-      lines: [
-        N('アルバイトのアオイさんが、思いつめた顔でやってきた。'),
-        M('trouble', '辞めたいんだって…。「仕事がきついのに、お給料が上がらないから」って。')
-      ],
+      lines: function (s) {
+        // ユイだけが働いているなら、辞めたいのはユイ
+        var who = quitter(s) === 'yui' ? 'アルバイトのユイちゃん' : 'アルバイトのアオイさん';
+        return [
+          N(who + 'が、思いつめた顔でやってきた。'),
+          M('trouble', '辞めたいんだって…。「仕事がきついのに、お給料が上がらないから」って。')
+        ];
+      },
       hint: function (s) {
         return s.shin >= 55 ? 'お店の雰囲気はいいから、話せば分かってくれるかも。' : '最近お店もバタバタしてたし、不満がたまってたのかも…';
       },
@@ -511,15 +521,15 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
               fx.stat('sho', 6); fx.stat('shin', 3);
               return { face: 'joy', text: '「仕入れの仕事、やってみたいです！」得意なことを任せたら、やる気が戻ったみたい！' };
             }
-            fx.staff(-1); fx.stat('shin', -3);
-            return { face: 'trouble', text: '話は聞けたけど、気持ちは変わらなかった…。' };
+            leave(fx); fx.stat('shin', -3);
+            return { face: 'trouble', text: '話は聞けたけど、気持ちは変わらなかった…。' + (fx.s.staff === 0 ? 'また店長ひとりに戻っちゃった。' : '') };
           }
         },
         {
           label: '引き止めない', tag: 'defend',
           apply: function (fx) {
-            fx.staff(-1); fx.stat('shin', -6); fx.stat('sho', -2);
-            return { face: 'trouble', text: 'お給料のぶんは浮いたけど、残ったメンバーの仕事が増えちゃった…。' };
+            leave(fx); fx.stat('shin', -6); fx.stat('sho', -2);
+            return { face: 'trouble', text: fx.s.staff === 0 ? 'お給料のぶんは浮いたけど、店長ひとりに戻って、仕事が一気に増えちゃった…。' : 'お給料のぶんは浮いたけど、残ったメンバーの仕事が増えちゃった…。' };
           }
         }
       ]
@@ -581,8 +591,9 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
           label: '本格的に始める（50万円）', tag: 'attack',
           apply: function (fx) {
             var e = G.onlineEstimate(fx.s, 2);
-            fx.money(-500000); fx.flag('online', 2); fx.fixed(60000, '発送の手伝い'); fx.stat('shu', 3);
+            fx.money(-500000); fx.flag('online', 2); fx.flag('onlineFrom', fx.s.monthIdx + 1); fx.stat('shu', 3);
             fx.note('ネットのもうけ 来月から毎月 約+' + man(e.lo) + '〜+' + man(e.hi), true);
+            fx.note('発送の手伝い 来月から毎月6万円', false);
             fx.note('発送作業で対応できるお客 −150人', false);
             fx.note('配送トラブルが起きやすい', false);
             return { face: 'smile', text: '撮影の道具も発送の準備もばっちり！来月からネットの売上が入ってくるよ。そのぶん、お店の手は少し回りにくくなるけどね。' };
@@ -592,7 +603,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
           label: '少しだけ試す（10万円）', tag: 'defend',
           apply: function (fx) {
             var e = G.onlineEstimate(fx.s, 1);
-            fx.money(-100000); fx.flag('online', 1);
+            fx.money(-100000); fx.flag('online', 1); fx.flag('onlineFrom', fx.s.monthIdx + 1);
             fx.note('ネットのもうけ 来月から毎月 約+' + man(e.lo) + '〜+' + man(e.hi), true);
             return { face: 'normal', text: 'まずは小さく試して、手ごたえを見てみよう。お店の仕事にもほとんど影響しないよ。' };
           }

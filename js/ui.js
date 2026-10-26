@@ -170,7 +170,7 @@
         case 'cost':
           t = d.n > 0 ? '1つあたりのもうけ ↓' : '1つあたりのもうけ ↑'; cls = d.n > 0 ? 'minus' : 'plus'; break;
         case 'impact':
-          if (d.capped) { t = 'お客 +0人（対応しきれない）'; cls = 'minus'; break; }
+          if (d.capped) { t = cappedText(d.profit * d.months); cls = d.profit > 0 ? 'plus' : 'minus'; break; }
           t = (d.months > 1 ? d.months + 'か月で ' : '') + 'お客 約' + approxPeople(d.people * d.months) + '（もうけ 約' + approxYen(Math.round(d.profit * d.months / 10000) * 10000) + '）'; cls = d.profit >= 0 ? 'plus' : 'minus'; break;
         case 'mod': break; // 人数ともうけは 'impact' で出す
         case 'extra': t = '売上 毎月+' + G.man(d.amount) + '（' + d.months + 'か月）'; cls = 'plus'; break;
@@ -236,8 +236,13 @@
   // お客の増減：「約○人（もうけ 約○万円）」で見せる。2か月以上続くものは合計
   function approxPeople(n) { var a = Math.abs(n); a = a >= 100 ? Math.round(a / 10) * 10 : a; return (n >= 0 ? '+' : '−') + a + '人'; }
   function approxYen(n) { return (n >= 0 ? '+' : '') + G.man(n); }
+  // お店が満員で人数が増えなくても、値引きなどでもうけが変わるならそれも見せる
+  function cappedText(profit) {
+    var f = Math.round(profit / 10000) * 10000;
+    return 'お客 +0人（対応しきれない' + (f ? '・もうけ 約' + approxYen(f) : '') + '）';
+  }
   function impactHTML(r) {
-    if (r.capped) return '<i class="m">お客 +0人（対応しきれない）</i>';
+    if (r.capped) { var cf = (r.fmin + r.fmax) / 2 * r.months; return '<i class="' + (cf > 0 ? 'p' : 'm') + '">' + cappedText(cf) + '</i>'; }
     var m = r.months, pa = (r.pmin + r.pmax) / 2 * m, fa = (r.fmin + r.fmax) / 2 * m;
     var t = (m > 1 ? m + 'か月で ' : '') + 'お客 約' + approxPeople(Math.round(pa)) + '（もうけ 約' + approxYen(Math.round(fa / 10000) * 10000) + '）';
     return '<i class="' + (fa >= 0 ? 'p' : 'm') + '">' + t + '</i>';
@@ -246,17 +251,17 @@
     var parts = [];
     if (g.moneyMin || g.moneyMax) {
       var m = g.moneyMin === g.moneyMax ? G.man(g.moneyMin).replace(/^(?![−])/, '+')
-        : G.man(g.moneyMin).replace(/^(?![−])/, '+') + '〜' + G.man(g.moneyMax).replace(/^(?![−])/, '+');
+        : '約' + G.man(g.moneyMin).replace(/^(?![−])/, '+') + '〜' + G.man(g.moneyMax).replace(/^(?![−])/, '+');
       parts.push('<i class="' + (g.moneyMax <= 0 ? 'm' : (g.moneyMin >= 0 ? 'p' : '')) + '">お金 ' + m + '</i>');
     }
     Object.keys(g.named || {}).forEach(function (l) {
       var r = g.named[l], sg = function (v) { return G.man(v).replace(/^(?![−])/, '+'); };
-      parts.push('<i class="' + (r.max <= 0 ? 'm' : (r.min >= 0 ? 'p' : '')) + '">' + l + ' ' + (r.min === r.max ? sg(r.min) : sg(r.min) + '〜' + sg(r.max)) + '</i>');
+      parts.push('<i class="' + (r.max <= 0 ? 'm' : (r.min >= 0 ? 'p' : '')) + '">' + l + ' ' + (r.min === r.max ? sg(r.min) : '約' + sg(r.min) + '〜' + sg(r.max)) + '</i>');
     });
     if (g.imp) parts.push(impactHTML(g.imp));
     if (g.extraInfo) {
       var mo = g.extraInfo.months, lo = g.extraMin * mo, hi = g.extraMax * mo;
-      var e = lo === hi ? G.man(lo) : G.man(lo) + '〜' + G.man(hi);
+      var e = lo === hi ? G.man(lo) : '約' + G.man(lo) + '〜' + G.man(hi);
       parts.push('<i class="p">売上 ' + mo + 'か月で合計+' + e + '</i>');
     }
     g.items.forEach(function (it) { parts.push('<i class="' + (it.plus === true ? 'p' : (it.plus === false ? 'm' : '')) + '">' + it.t + '</i>'); });
@@ -442,6 +447,7 @@
       var smalls = G.planSmall(S);
       for (var k = 0; k < smalls.length; k++) {
         var se = G.smallById(smalls[k]);
+        if (!G.smallOk(S, se)) continue; // 同じ月のうちに状況が変わっていたら出さない（例：ユイを雇ったあとの「ひとりで手が回らない」）
         setBg('shop');
         setChara('mio', smallMood(se));
         await playEvent(se.lines);

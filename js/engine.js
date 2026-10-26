@@ -115,6 +115,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
         var monthly = round1000(principal * (1 + rate) / months);
         s.loans.push({ label: label, monthly: monthly, left: months });
         deltas.push({ k: 'loan', label: label, monthly: monthly, months: months });
+        return monthly * months - principal; // 実際に払う利息
       },
       due: function (label, amount, inMonths) {
         s.dues.push({ label: label, amount: amount, inMonths: inMonths });
@@ -168,7 +169,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
     G.noImpact = false;
     var gross = function (r) { return r.storeSales + r.online - r.cost; };
     return { k: 'impact', people: ra.visitors - rb.visitors, profit: Math.round((gross(ra) - gross(rb)) / 1000) * 1000,
-      months: months, capped: ra.lost > 0 && ra.visitors === rb.visitors && added.some(function (m) { return m.kind === 'visitors' && m.value > 1; }) };
+      months: months, capped: ra.lost > 0 && ra.visitors <= rb.visitors && added.some(function (m) { return m.kind === 'visitors' && m.value > 1; }) };
   };
 
   // 選ぶ前に起きる効果（例：チェーン店ができてお客が流れる）を先に済ませる
@@ -202,8 +203,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
     for (var i = 0; i < n; i++) {
       var pool = G.SMALL.filter(function (e) {
         if (s.usedSmall.indexOf(e.id) >= 0 || picked.indexOf(e.id) >= 0) return false;
-        if (e.months && e.months.indexOf(m) < 0) return false;
-        if (e.cond && !e.cond(s)) return false;
+        if (!G.smallOk(s, e)) return false;
         if (e.disaster || e.id === 's_insurance') return false;
         // 悪い出来事は1か月に1回まで（運だけで追いつめられないように）
         if (e.bad && picked.some(function (id) { return G.smallById(id).bad; })) return false;
@@ -222,10 +222,17 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
     if (m === 5 && s.usedSmall.indexOf('s_insurance') < 0 && G.smallById('s_insurance')) picked.unshift('s_insurance');
     // 7月以降：理不尽な大きなトラブル
     if (s.monthIdx >= 3 && (s.flags.dis || 0) < 2 && rnd(s) < P.disasterChance) {
-      var ds = G.SMALL.filter(function (e) { return e.disaster && s.usedSmall.indexOf(e.id) < 0 && (!e.cond || e.cond(s)); });
+      var ds = G.SMALL.filter(function (e) { return e.disaster && s.usedSmall.indexOf(e.id) < 0 && G.smallOk(s, e); });
       if (ds.length) picked.push(ds[Math.floor(rnd(s) * ds.length)].id);
     }
     return picked;
+  };
+
+  // 小さな出来事が今起きてよいか（月と条件）。予定した出来事も、出す直前にもう一度確かめる
+  G.smallOk = function (s, e) {
+    if (!e) return false;
+    if (e.months && e.months.indexOf(G.month(s)) < 0) return false;
+    return !e.cond || !!e.cond(s);
   };
 
   G.smallById = function (id) {
@@ -300,7 +307,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
   }
 
   G.preview = function (s, ev, idx, isSmall) {
-    var N = 40, list = [];
+    var N = 80, list = [];
     for (var k = 0; k < N; k++) {
       var c = JSON.parse(JSON.stringify(s));
       c.rng = (s.rng + 1 + k * 7919) | 0;
@@ -343,10 +350,11 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
   /* ---------- 月末の収支 ---------- */
   G.settle = function (s) {
     var m = G.month(s);
-    var vMult = 1, capMult = 1, costAdd = 0, modLabels = [];
+    var vMult = 1, capMult = 1, uMult = 1, costAdd = 0, modLabels = [];
     s.mods.forEach(function (md) {
       if (md.kind === 'visitors') { vMult *= md.value; if (md.value < 1) capMult *= md.value; } // 休みや天気は、対応できる人数も減らす
       if (md.kind === 'cost') costAdd += md.value;
+      if (md.kind === 'unit') uMult *= md.value; // 値引きやまとめ買いで、1人あたりの金額が変わる
       modLabels.push(md.label);
     });
     var noise = 1 + (rnd(s) * 2 - 1) * P.noise;
@@ -354,28 +362,31 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
     var visitors = Math.round((P.baseVisitors + P.visitorsPerShu * s.shu) * repeat * SEASON[m] * vMult * noise);
     var cap = Math.round(G.capacity(s) * capMult), lost = 0;
     if (visitors > cap) { lost = visitors - cap; visitors = cap; }
-    var unit = Math.round((P.baseUnit + P.unitPerSho * s.sho) / 10) * 10;
+    var unit = Math.round((P.baseUnit + P.unitPerSho * s.sho) * uMult / 10) * 10;
     var storeSales = round1000(visitors * unit);
 
-    var online = 0;
-    if (s.flags.online === 2) online = round1000((200000 + s.sho * 7000) * (0.6 + rnd(s) * 0.8)); // 本格的：大きいがぶれも大きい
-    if (s.flags.online === 1) online = round1000((60000 + s.sho * 2500) * (0.85 + rnd(s) * 0.3));
+    var online = 0, olv = G.onlineLevel(s);
+    if (olv === 2) online = round1000((200000 + s.sho * 7000) * (0.6 + rnd(s) * 0.8)); // 本格的：大きいがぶれも大きい
+    if (olv === 1) online = round1000((60000 + s.sho * 2500) * (0.85 + rnd(s) * 0.3));
 
     var extra = 0, extraLabels = [];
     s.extras.forEach(function (e) { extra += e.amount; extraLabels.push(e.label); });
 
     var costRate = clamp(s.costRate + costAdd, 0.25, 0.8);
     var cost = round1000((storeSales + online) * costRate);
-    var staffPay = s.staff * P.staffPay;
-    var fixed = P.rent + P.other + staffPay + s.fixedExtra;
+    // ユイは学生アルバイトなので、給料は月12万円
+    var staffPay = s.staff * P.staffPay - (s.flags.yui && s.staff > 0 ? 60000 : 0);
+    var ship = olv === 2 ? 60000 : 0; // 本格的なネット販売：発送の手伝い
+    var fixed = P.rent + P.other + staffPay + s.fixedExtra + ship;
 
     var loan = 0;
     s.loans.forEach(function (l) { if (l.left > 0) { loan += l.monthly; l.left--; } });
     s.loans = s.loans.filter(function (l) { return l.left > 0; });
 
     var due = 0;
-    s.dues.forEach(function (d) { d.inMonths--; if (d.inMonths <= 0) due += d.amount; });
-    s.dues = s.dues.filter(function (d) { return d.inMonths > 0; });
+    // 「1か月待ってもらう」なら、その月ではなく翌月の月末に払う
+    s.dues.forEach(function (d) { d.inMonths--; if (d.inMonths < 0) due += d.amount; });
+    s.dues = s.dues.filter(function (d) { return d.inMonths >= 0; });
 
     var sales = storeSales + online + extra;
     var profit = sales - cost - fixed - loan - due;
@@ -390,7 +401,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
     var rep = {
       month: m, visitors: visitors, lost: lost, unit: unit, storeSales: storeSales, online: online,
       extra: extra, extraLabels: extraLabels, sales: sales, cost: cost, costRate: costRate,
-      rent: P.rent, other: P.other + s.fixedExtra, staffPay: staffPay, staff: s.staff,
+      rent: P.rent, other: P.other + s.fixedExtra + ship, staffPay: staffPay, staff: s.staff,
       loan: loan, due: due, profit: profit, money: s.money, modLabels: modLabels
     };
     s.history.push(rep);
@@ -399,7 +410,13 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
   };
 
   // スタッフの人数で、1か月に対応できるお客の数が決まる
-  G.capacity = function (s) { return P.capBase + P.capPerStaff * s.staff - (s.flags.online === 2 ? 150 : 0); };
+  G.capacity = function (s) { return P.capBase + P.capPerStaff * s.staff - (G.onlineLevel(s) === 2 ? 150 : 0); };
+
+  // ネット販売は、始めた翌月から動き出す
+  G.onlineLevel = function (s) {
+    if (!s.flags.online) return 0;
+    return s.monthIdx >= (s.flags.onlineFrom || 0) ? s.flags.online : 0;
+  };
 
   G.nextMonth = function (s) {
     s.monthIdx++;

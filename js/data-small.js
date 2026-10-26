@@ -45,13 +45,13 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
       apply: function (fx) { fx.mod('visitors', 1.08, 1, 'クリスマス'); return R('smile', 'プレゼント探しのお客さんがいっぱい！'); } },
     { id: 's_cleaning', months: [12], lines: [N('年末の大掃除で、いらなくなった物を売りに来る人が増えた。')],
       apply: function (fx) { fx.stat('sho', 3); return R('smile', 'いい品がたくさん集まった！品ぞろえが充実したよ。'); } },
-    { id: 's_graduation', months: [3], lines: [N('卒業シーズン。家具や家電を手放す学生が多い。')],
+    { id: 's_graduation', months: [3], cond: function (s) { return s.flags.concept !== 'fashion'; }, lines: [N('卒業シーズン。家具や家電を手放す学生が多い。')],
       apply: function (fx) { fx.stat('sho', 4); return R('smile', 'まだ使える家電がたくさん！品ぞろえが一気に増えたね。'); } },
     { id: 's_newlife', months: [3, 4], lines: [N('新生活の準備で、安く物をそろえたい人が来ている。')],
       apply: function (fx) { fx.mod('visitors', 1.1, 1, '新生活の買い物'); return R('smile', '新しい生活を始める人の役に立てるの、うれしいね。'); } },
     { id: 's_moving', months: [4, 5], lines: [N('引っ越しシーズン。買い取りの依頼がたくさん来た。')],
       apply: function (fx) { fx.stat('sho', 3); return R('normal', '品ぞろえが増えたよ。値付けがんばらなきゃ！'); } },
-    { id: 's_koromogae', months: [6, 10], lines: [N('衣替えの季節。服の買い取りがどっと増えた。')],
+    { id: 's_koromogae', months: [6, 10], cond: function (s) { return s.flags.concept !== 'gadget'; }, lines: [N('衣替えの季節。服の買い取りがどっと増えた。')],
       apply: function (fx) { var f = fx.s.flags.concept === 'fashion'; fx.stat('sho', f ? 5 : 2); return R(f ? 'joy' : 'normal', f ? '古着のお店としては、最高の季節だね！' : '服がたくさん集まったよ。'); } },
     { id: 's_school_fes', months: [9, 10, 11], lines: [N('近くの高校の文化祭で、出店しないかと誘われた。')],
       choices: [
@@ -71,20 +71,20 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
       ] },
     { id: 's_yui_friends', cond: function (s) { return s.monthIdx >= 2; }, lines: [L('yui', null, 'こんにちは〜！今日は友だちも連れてきました！')],
       apply: function (fx) { fx.stat('shu', 2); fx.stat('shin', 2); return R('smile', '常連のユイちゃんが友だちを連れてきてくれた！うれしいね。'); } },
-    { id: 's_yui_request', cond: function (s) { return s.monthIdx >= 2; }, lines: [L('yui', null, 'このお店に、古いカメラがあったらうれしいんだけどなぁ。')],
+    { id: 's_yui_request', cond: function (s) { return s.monthIdx >= 2 && s.flags.concept !== 'fashion'; }, lines: [L('yui', null, 'このお店に、古いカメラがあったらうれしいんだけどなぁ。')],
       choices: [
         { label: '探して仕入れてみる（5万円）', tag: 'customer', apply: function (fx) { fx.money(-50000); fx.stat('shin', 1); if (fx.chance(fx.s.flags.concept === 'gadget' ? 0.75 : 0.4)) { fx.stat('sho', 4); fx.money(80000, 'カメラが売れた'); return R('smile', 'ユイちゃん大喜び！カメラ好きのお客さんも来るようになったよ。'); } return R('trouble', 'ユイちゃんは喜んでくれたけど、ほかのカメラは売れ残っちゃった…。うちのお客さんには合わなかったみたい。'); } },
         { label: '似た品を紹介する', tag: 'defend', apply: function (fx) { fx.stat('shin', 1); return R('normal', '「こっちも素敵！」って、気に入ってもらえたよ。'); } }
       ] },
     { id: 's_yui_job', cond: function (s) { return s.staff < 2 && s.monthIdx >= 4; }, lines: [L('yui', null, 'あの…ここでアルバイトさせてもらえませんか？このお店が好きなんです！')],
       choices: [
-        { label: '雇う（毎月12万円）', tag: 'team', apply: function (fx) { fx.staff(1); fx.fixed(-60000, '学生アルバイトなので給料が安い'); fx.stat('shin', 4); fx.stat('sho', 2); return R('joy', 'お店が好きな人が働いてくれるのは最強だよ！'); } },
+        { label: '雇う（毎月12万円）', tag: 'team', apply: function (fx) { fx.staff(1); fx.flag('yui', true); fx.note('学生アルバイトなので、給料は毎月12万円', null); fx.stat('shin', 4); fx.stat('sho', 2); return R('joy', 'お店が好きな人が働いてくれるのは最強だよ！'); } },
         { label: '今は断る', tag: 'defend', apply: function () { return R('normal', '「また声をかけてください」だって。'); } }
       ] },
     { id: 's_influencer', cond: function (s) { return s.sho >= 45; }, weight: 0.7, lines: [N('有名なインフルエンサーが、お店に来ているみたい！')],
       choices: [
-        { label: '声をかけて紹介をお願いする', tag: 'attack', apply: function (fx) { if (fx.chance(0.5)) { fx.stat('shu', 8); return R('joy', '紹介してもらえた！フォロワーさんがどんどん来てる！'); } fx.stat('shin', -2); return R('trouble', '「プライベートなので…」と断られちゃった。'); } },
-        { label: 'そっとしておく', tag: 'customer', apply: function (fx) { if (fx.chance(0.5)) { fx.stat('shu', 4); return R('smile', '自分から投稿してくれたみたい！居心地がよかったのかな。'); } return R('normal', '楽しそうに買い物して帰っていったよ。'); } }
+        { label: '声をかけて紹介をお願いする', tag: 'attack', apply: function (fx) { if (fx.chance(0.5)) { fx.stat('shu', 8); return R('joy', '紹介してもらえた！フォロワーさんがどんどん来てる！'); } fx.stat('shin', -3); return R('trouble', '「プライベートなので…」と断られちゃった。'); } },
+        { label: 'そっとしておく', tag: 'customer', apply: function (fx) { if (fx.chance(0.5)) { fx.stat('shu', 5); return R('smile', '自分から投稿してくれたみたい！居心地がよかったのかな。'); } return R('normal', '楽しそうに買い物して帰っていったよ。'); } }
       ] },
     { id: 's_point_card', lines: [M('normal', 'ポイントカードを作って、また来てもらう仕組みを作ってみる？')],
       choices: [
@@ -113,17 +113,17 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
       ] },
 
     /* ---------- 仕入れ・取引 ---------- */
-    { id: 's_kaede_find', cond: function (s) { return s.monthIdx >= 3; }, lines: [M('normal', '仕入れ業者さんから、掘り出し物のブランドバッグを20万円でどうかって。買ってみる？')],
+    { id: 's_kaede_find', cond: function (s) { return s.monthIdx >= 3 && s.flags.concept !== 'gadget'; }, lines: [M('normal', '仕入れ業者さんから、掘り出し物のブランドバッグを20万円でどうかって。買ってみる？')],
       choices: [
         { label: '買う（20万円）', tag: 'attack', apply: function (fx) { fx.money(-200000); var v = fx.rand(0, 1); if (v > 0.35) { fx.money(200000 + 250000 * v, '売れたお金'); fx.stat('sho', 2); return R('joy', '高く売れた！目利きが当たったね。'); } fx.money(80000, '安く手放したお金'); return R('trouble', 'なかなか売れなくて、結局8万円で手放すことに…。'); } },
         { label: '見送る', tag: 'defend', apply: function () { return R('normal', '分からないものには手を出さない。それもひとつの判断だよ。'); } }
       ] },
-    { id: 's_kaede_price', bad: true, cond: function (s) { return s.monthIdx >= 3; }, lines: [M('trouble', '仕入れ業者さんから、来月から仕入れ値を少し上げさせてほしいって相談が来たよ…。')],
+    { id: 's_kaede_price', bad: true, cond: function (s) { return s.monthIdx >= 3; }, lines: [M('trouble', '仕入れ業者さんから、仕入れ値を少し上げさせてほしいって相談が来たよ…。')],
       choices: [
         { label: 'そのまま受け入れる', tag: 'customer', apply: function (fx) { fx.cost(0.02); fx.stat('sho', 1); return R('normal', '業者さん、ほっとしてたよ。いい品を優先して回してくれるって。'); } },
         { label: '交渉する', tag: 'attack', apply: function (fx) { if (fx.chance(0.45 + fx.s.shin / 200)) return R('smile', '「店長にはお世話になってるので」って、今のままにしてくれた！', 'mio'); fx.cost(0.03); fx.stat('sho', -2); return R('trouble', '交渉はうまくいかず、値上げされたうえに関係もぎくしゃく…。'); } }
       ] },
-    { id: 's_fake', lines: [N('有名ブランドの財布を売りたい、というお客さんが来た。'), M('normal', 'ちょっと気になるな…。本物かどうか、確かめる？')],
+    { id: 's_fake', cond: function (s) { return s.flags.concept !== 'gadget'; }, lines: [N('有名ブランドの財布を売りたい、というお客さんが来た。'), M('normal', 'ちょっと気になるな…。本物かどうか、確かめる？')],
       choices: [
         { label: 'お金を払って鑑定する（1万円）', tag: 'customer', apply: function (fx) { fx.money(-10000); fx.stat('shin', 3); return R('normal', 'やっぱり偽物だった！買い取らずに済んだよ。お客さんにも安心してもらえるね。'); } },
         { label: '見た目で判断して買い取る', tag: 'attack', apply: function (fx) { if (fx.chance(0.4)) { fx.money(-100000); fx.stat('shin', -8); return R('angry', '偽物だった！しかも売ったあとに分かって、返金と信用の両方を失っちゃった…。'); } fx.money(60000); return R('smile', '本物だった。今回は運がよかったね。'); } }
@@ -210,14 +210,14 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
       ] },
 
     /* ---------- ネット・ジャンル別 ---------- */
-    { id: 's_online_rush', cond: function (s) { return !!s.flags.online; }, lines: [N('ネット販売の注文が急に増えた！')],
+    { id: 's_online_rush', cond: function (s) { return !!G.onlineLevel(s); }, lines: [N('ネット販売の注文が急に増えた！')],
       apply: function (fx) { fx.money(fx.rand(100000, 250000)); return R('joy', '遠くの人にも届いてる！'); } },
-    { id: 's_online_trouble', bad: true, weight: 2, cond: function (s) { return s.flags.online === 2 || (s.flags.online === 1 && s.monthIdx % 2 === 0); }, lines: [N('ネットで売った品が、配送中に傷ついてしまった。')],
+    { id: 's_online_trouble', bad: true, weight: 2, cond: function (s) { var o = G.onlineLevel(s); return o === 2 || (o === 1 && s.monthIdx % 2 === 0); }, lines: [N('ネットで売った品が、配送中に傷ついてしまった。')],
       choices: [
         { label: '送料を返して、あやまる', tag: 'customer', apply: function (fx) { fx.money(-20000); fx.stat('shin', 2); return R('normal', 'ていねいな対応が、いい評価につながったよ。'); } },
         { label: '配送会社に補償を頼む', tag: 'defend', apply: function (fx) { fx.money(15000, '配送会社の補償'); fx.stat('shin', -3); return R('trouble', '「お店の対応が悪い」って評価がついちゃった…。'); } }
       ] },
-    { id: 's_game_release', months: [11, 12], lines: [N('新しいゲーム機が発売された。古いゲーム機を売りに来る人が増えている。')],
+    { id: 's_game_release', months: [11, 12], cond: function (s) { return s.flags.concept !== 'fashion'; }, lines: [N('新しいゲーム機が発売された。古いゲーム機を売りに来る人が増えている。')],
       apply: function (fx) { var g = fx.s.flags.concept === 'gadget'; fx.stat('sho', g ? 5 : 1); fx.stat('shu', g ? 3 : 0); return R(g ? 'joy' : 'normal', g ? 'ゲームのお店としては、大チャンスだね！' : '少しだけ品ぞろえが増えたよ。'); } },
     { id: 's_vintage', cond: function (s) { return s.flags.concept === 'fashion' && s.monthIdx >= 1; }, lines: [N('古着好きの間で、昔のジャージがブームになっている。')],
       apply: function (fx) { fx.stat('shu', 4); return R('joy', 'うちの得意分野！ブームに乗れたね。'); } },
@@ -254,7 +254,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
         { label: '新品に替える（35万円）', tag: 'defend', apply: function (fx) { fx.flag('dis', (fx.s.flags.dis || 0) + 1); fx.money(-350000); return R('normal', '大きな出費だけど、これでしばらくは安心だね。'); } },
         { label: '中古でしのぐ（15万円）', tag: 'attack', apply: function (fx) { fx.flag('dis', (fx.s.flags.dis || 0) + 1); fx.money(-150000); fx.stat('shin', -4); fx.mod('visitors', 0.95, 1, '暗くて暑い店内'); return R('trouble', 'お金はおさえられたけど、店内が暗くて暑いって言われちゃった…。'); } }
       ] },
-    { id: 'd_fake', disaster: true, bad: true, lines: [N('買い取った品の中に、偽ブランド品がまとめて混じっていたことが分かった。'), M('angry', '売ってしまった分は、全部返金しないと…！')],
+    { id: 'd_fake', disaster: true, bad: true, lines: [N('買い取った品の中に、偽物がまとめて混じっていたことが分かった。'), M('angry', '売ってしまった分は、全部返金しないと…！')],
       apply: function (fx) { fx.flag('dis', (fx.s.flags.dis || 0) + 1); fx.money(-300000, '返金'); fx.stat('shin', -5); return R('trouble', '30万円の返金と、信頼の低下…。買い取りのチェック、もっと厳しくしよう。'); } },
 
     /* ---------- ほっこり ---------- */
@@ -262,7 +262,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
       apply: function (fx) { fx.stat('shin', 1); return R('smile', 'たまには一息つこうね。', 'mio'); } },
     { id: 's_thanks_letter', cond: function (s) { return s.shin >= 55; }, lines: [N('お客さんから、手書きのお礼の手紙が届いた。')],
       apply: function (fx) { fx.stat('shin', 2); return R('joy', '「おばあちゃんが大事にしていた物を、次の人に渡せてうれしかった」だって。'); } },
-    { id: 's_old_customer', lines: [N('おじいさんが、昔集めていたレコードを持ってきた。')],
+    { id: 's_old_customer', cond: function (s) { return s.flags.concept !== 'fashion'; }, lines: [N('おじいさんが、昔集めていたレコードを持ってきた。')],
       choices: [
         { label: 'じっくり話を聞いて買い取る', tag: 'customer', apply: function (fx) { fx.mod('visitors', 0.97, 1, '長い査定でレジ待ち'); fx.stat('shin', 3); fx.stat('sho', 2); return R('smile', '思い出話をたくさん聞かせてくれたよ。そのあいだ、レジは少し待たせちゃったけど。'); } },
         { label: '手早く査定する', tag: 'attack', apply: function (fx) { fx.stat('sho', 2); return R('normal', 'スムーズに買い取れたよ。'); } }

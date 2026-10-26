@@ -54,6 +54,7 @@ function play(seed, policy) {
     const smalls = G.planSmall(s);
     for (const id of smalls) {
       const se = G.smallById(id);
+      if (!G.smallOk(s, se)) continue;
       let si = null;
       if (se.choices) {
         const sok = se.choices.map(() => true);
