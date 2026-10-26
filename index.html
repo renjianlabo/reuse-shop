@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>リユースショップ店長</title>
+<meta name="description" content="リユースショップの店長になって1年間お店を経営する、選択肢型の経営ノベルゲーム。遊びながら経営の基礎が身につきます。">
+<meta name="theme-color" content="#1E5B4F">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Yusei+Magic&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<aside class="desk-note" aria-hidden="true">
+  <p class="desk-title" id="deskTitle"></p>
+  <p>スマホ向けに作ったゲームです。<br>パソコンでもこのまま遊べます。</p>
+</aside>
+
+<main class="phone" id="phone">
+
+  <!-- タイトル -->
+  <section class="screen title-screen" id="scrTitle">
+    <div class="scene" data-bg="shop"></div>
+    <div class="title-tag">
+      <span class="tag-hole"></span>
+      <h1 id="titleText"></h1>
+      <p id="subtitleText"></p>
+    </div>
+    <div class="title-menu">
+      <button class="btn btn-main" id="btnNew">はじめから</button>
+      <button class="btn" id="btnContinue" hidden>続きから</button>
+      <p class="title-record" id="titleRecord"></p>
+    </div>
+  </section>
+
+  <!-- ゲーム本編 -->
+  <section class="screen game-screen" id="scrGame" hidden>
+    <header class="hud">
+      <div class="hud-row">
+        <span class="hud-month" id="hudMonth">4月</span>
+        <span class="hud-money"><small>お金</small><b id="hudMoney">300万円</b></span>
+        <button class="hud-menu" id="btnMenu" aria-label="メニュー">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="hud-stats">
+        <div class="stat" data-k="shu"><span>集客力</span><i><em></em></i><b>40</b></div>
+        <div class="stat" data-k="sho"><span>商品力</span><i><em></em></i><b>40</b></div>
+        <div class="stat" data-k="shin"><span>信頼</span><i><em></em></i><b>40</b></div>
+      </div>
+    </header>
+
+    <div class="stage">
+      <div class="scene" id="scene" data-bg="shop"></div>
+      <div class="chara" id="chara"></div>
+      <div class="choices" id="choices" hidden></div>
+    </div>
+
+    <div class="dialog" id="dialog" tabindex="0" aria-live="polite">
+      <div class="nameplate" id="nameplate" hidden></div>
+      <div class="chips" id="chips"></div>
+      <p class="dialog-text" id="dialogText"></p>
+      <span class="dialog-next" id="dialogNext" aria-hidden="true"></span>
+    </div>
+
+    <!-- 月の始まり -->
+    <div class="overlay month-card" id="ovMonth" hidden>
+      <div class="calendar">
+        <div class="calendar-top"><span></span><span></span></div>
+        <p class="calendar-year" id="calYear"></p>
+        <p class="calendar-month" id="calMonth"></p>
+        <p class="calendar-title" id="calTitle"></p>
+      </div>
+    </div>
+
+    <!-- ミオのメモ -->
+    <div class="overlay memo" id="ovMemo" hidden>
+      <div class="memo-card">
+        <p class="memo-from">ミオのメモ</p>
+        <h2 class="memo-word" id="memoWord"></h2>
+        <p class="memo-yomi" id="memoYomi"></p>
+        <p class="memo-body" id="memoBody"></p>
+        <div class="memo-job"><b>就活ポイント</b><p id="memoJob"></p></div>
+        <button class="btn btn-main" id="btnMemo">わかった</button>
+      </div>
+    </div>
+
+    <!-- 月末のレシート -->
+    <div class="overlay receipt-wrap" id="ovReceipt" hidden>
+      <div class="printer"></div>
+      <div class="receipt" id="receipt"></div>
+      <div class="receipt-foot">
+        <p class="receipt-comment" id="receiptComment"></p>
+        <button class="btn btn-main" id="btnReceipt">次の月へ</button>
+      </div>
+    </div>
+
+    <!-- メニュー -->
+    <div class="overlay sheet" id="ovMenu" hidden>
+      <div class="sheet-body">
+        <h2>メニュー</h2>
+        <button class="btn" id="btnTerms">覚えた用語を見る</button>
+        <button class="btn" id="btnHistory">これまでのレシートを見る</button>
+        <button class="btn btn-ghost" id="btnToTitle">タイトルにもどる（月の始めから再開できます）</button>
+        <button class="btn btn-main" id="btnCloseMenu">ゲームにもどる</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 結末 -->
+  <section class="screen ending-screen" id="scrEnding" data-v="a" hidden>
+    <div class="ending-art" id="endingArt"></div>
+    <div class="ending-body">
+      <p class="ending-kicker" id="endingKicker"></p>
+      <h2 id="endingTitle"></h2>
+      <div id="endingText"></div>
+      <p class="ending-lesson" id="endingLesson"></p>
+      <dl class="ending-stats" id="endingStats"></dl>
+      <button class="btn btn-main" id="btnToType">経営タイプ診断を見る</button>
+    </div>
+    <div class="end-bar" id="endBar" hidden><i></i></div>
+  </section>
+
+  <!-- 結末の絵を画面いっぱいに見せる -->
+  <div class="end-intro" id="endIntro" hidden>
+    <div class="end-intro-text">
+      <p id="endIntroKicker"></p>
+      <h2 id="endIntroTitle"></h2>
+      <small>タップで進む</small>
+    </div>
+  </div>
+
+  <!-- 診断 -->
+  <section class="screen type-screen" id="scrType" hidden>
+    <div class="type-card">
+      <p class="type-label">あなたの経営タイプは</p>
+      <h2 id="typeName"></h2>
+      <p class="type-catch" id="typeCatch"></p>
+      <p id="typeBody"></p>
+      <div class="memo-job"><b>就活で話すなら</b><p id="typeStrength"></p></div>
+    </div>
+    <div class="type-actions">
+      <button class="btn" id="btnTypeTerms">覚えた用語を見る</button>
+      <button class="btn btn-main" id="btnAgain">もう一度遊ぶ</button>
+      <button class="btn btn-ghost" id="btnTypeTitle">タイトルへ</button>
+    </div>
+  </section>
+
+  <!-- 用語一覧・レシート履歴（共通の読みもの画面） -->
+  <section class="screen read-screen" id="scrRead" hidden>
+    <header class="read-head">
+      <button class="read-back" id="btnReadBack" aria-label="もどる">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <h2 id="readTitle"></h2>
+    </header>
+    <div class="read-body" id="readBody"></div>
+  </section>
+
+</main>
+
+<script src="js/engine.js"></script>
+<script src="js/data-big.js"></script>
+<script src="js/data-small.js"></script>
+<script src="js/data-text.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
