@@ -349,10 +349,11 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
     {
       id: 'm10', month: 2, bg: 'shop', title: '壊れた品を売ってしまった', memo: 'manzoku',
       lines: function (s) {
-        var item = s.flags.concept === 'gadget' ? 'ゲーム機' : (s.flags.concept === 'fashion' ? 'コート' : '電気ポット');
+        var said = s.flags.concept === 'gadget' ? '先週買ったゲーム機が、もう壊れたんですけど！'
+          : (s.flags.concept === 'fashion' ? '先週買ったコート、1回着ただけで縫い目がほつれたんですけど！' : '先週買った電気ポットが、もう壊れたんですけど！');
         return [
           N('お客さんから電話がかかってきた。'),
-          N('「先週買った' + item + 'が、もう壊れたんですけど！」'),
+          N('「' + said + '」'),
           M('trouble', 'うちのチェックが甘かったみたい…。どう対応する？')
         ];
       },
@@ -393,11 +394,15 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
 
     /* ---------------- 11月 ---------------- */
     {
-      id: 'm11', month: 11, bg: 'office', title: '黒字なのにお金が足りない', memo: 'shikin',
+      id: 'm11', month: 11, bg: 'office', title: '黒字なのにお金が足りない', titleMinus: 'お金が足りない！', memo: 'shikin',
       lines: function (s) {
+        // 先月のレシートが赤字なら「もうかっているのに」とは言わない
+        var last = s.history[s.history.length - 1];
+        var plus = !last || last.profit >= 0;
         return [
           M('surprise', '店長、大変！' + ({ fashion: '冬物の仕入れ代', gadget: '年末商戦に向けたゲーム機の仕入れ代' }[s.flags.concept] || '冬物と暖房器具の仕入れ代') + 'と空調の修理代で、来週までに100万円払わないといけないの。'),
-          M('trouble', 'お店はもうかっているのに、売上が入ってくるのは来月。手元のお金がギリギリかも…。'),
+          plus ? M('trouble', 'お店はもうかっているのに、売上が入ってくるのは来月。手元のお金がギリギリかも…。')
+            : M('trouble', '先月は赤字で、手元のお金も減ってきてる。今月の売上が入るのは来月だし、このままだと払えないかも…。'),
           N('（今の手元のお金：' + man(s.money) + '）')
         ];
       },

@@ -319,7 +319,8 @@
       var ov = $('ovMonth');
       $('calYear').textContent = '開店から' + (s.monthIdx + 1) + 'か月目';
       $('calMonth').textContent = G.month(s) + '月';
-      $('calTitle').textContent = ev.title;
+      var lastRep = s.history[s.history.length - 1];
+      $('calTitle').textContent = ev.titleMinus && lastRep && lastRep.profit < 0 ? ev.titleMinus : ev.title; // 赤字の月に「黒字なのに」と出さない
       ov.classList.remove('leave');
       ov.hidden = false;
       var closed = false;
