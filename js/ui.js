@@ -3,6 +3,7 @@
   'use strict';
 
   var SAVE_KEY = 'reuseShop.save.v1';
+  var SAVE_V = 2; // 計算のしかたが変わったら上げる（古い途中データは続きから遊べない）
   var SEEN_KEY = 'reuseShop.endings.v1';
 
   var $ = function (id) { return document.getElementById(id); };
@@ -424,7 +425,7 @@
     if (!resume) await playEvent(G.INTRO);
 
     while (true) {
-      store(SAVE_KEY, { v: 1, s: S });
+      store(SAVE_KEY, { v: SAVE_V, s: S });
       if (!running) return;
       var ev = G.bigEvent(S);
       renderHud(S, false);
@@ -570,7 +571,7 @@
   $('btnAgain').onclick = startNew;
   $('btnContinue').onclick = function () {
     var sv = load(SAVE_KEY);
-    if (!sv || sv.v !== 1) { refreshTitle(); return; }
+    if (!sv || sv.v !== SAVE_V) { refreshTitle(); return; }
     S = sv.s;
     shownMoney = S.money;
     runGame(true);
@@ -596,10 +597,13 @@
 
   function refreshTitle() {
     var sv = load(SAVE_KEY);
-    $('btnContinue').hidden = !(sv && sv.v === 1);
-    if (sv && sv.v === 1) $('btnContinue').textContent = '続きから（' + G.MONTHS[sv.s.monthIdx] + '月）';
+    var ok = !!(sv && sv.v === SAVE_V);
+    $('btnContinue').hidden = !ok;
+    if (ok) $('btnContinue').textContent = '続きから（' + G.MONTHS[sv.s.monthIdx] + '月）';
     var seen = load(SEEN_KEY) || [];
-    $('titleRecord').textContent = seen.length ? 'これまでに見た結末 ' + seen.length + ' / ' + G.ENDING_ORDER.length : '';
+    var rec = seen.length ? 'これまでに見た結末 ' + seen.length + ' / ' + G.ENDING_ORDER.length : '';
+    if (sv && !ok) rec = '前の版の途中データは使えないので、はじめから遊んでください。' + (rec ? '\n' + rec : '');
+    $('titleRecord').textContent = rec;
     show('scrTitle');
   }
 

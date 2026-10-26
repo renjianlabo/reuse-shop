@@ -136,7 +136,7 @@ button { font: inherit; color: inherit; }
 .title-chara { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%); height: 50%; aspect-ratio: 3 / 4.4; display: flex; justify-content: center; align-items: flex-end; }
 .title-chara img, .title-chara svg { height: 100%; width: auto; }
 .title-menu { position: relative; z-index: 1; display: grid; gap: 12px; padding: 0 28px calc(28px + env(safe-area-inset-bottom)); }
-.title-record { text-align: center; margin: 4px 0 0; font-size: 13px; color: var(--ink-soft); }
+.title-record { text-align: center; margin: 4px 0 0; font-size: 13px; color: var(--ink-soft); white-space: pre-line; }
 
 /* ===== ゲーム画面 ===== */
 .game-screen { background: #000; }
@@ -433,7 +433,7 @@ button { font: inherit; color: inherit; }
 
 /* タイトルの背景の上でも読めるように */
 .title-menu .btn-ghost { background: rgba(255, 255, 255, .88); border-color: var(--ink); text-decoration: none; }
-.title-record { background: rgba(255, 255, 255, .8); justify-self: center; padding: 2px 12px; border-radius: 999px; }
+.title-record { background: rgba(255, 255, 255, .8); justify-self: center; padding: 2px 12px; border-radius: 14px; }
 .title-record:empty { display: none; }
 
 /* ===== 結末の説明画面（背景を見せて、説明はすりガラスの板に） ===== */

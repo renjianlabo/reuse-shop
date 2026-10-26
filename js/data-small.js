@@ -215,7 +215,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
     { id: 's_online_trouble', bad: true, weight: 2, cond: function (s) { var o = G.onlineLevel(s); return o === 2 || (o === 1 && s.monthIdx % 2 === 0); }, lines: [N('ネットで売った品が、配送中に傷ついてしまった。')],
       choices: [
         { label: '送料を返して、あやまる', tag: 'customer', apply: function (fx) { fx.money(-20000); fx.stat('shin', 2); return R('normal', 'ていねいな対応が、いい評価につながったよ。'); } },
-        { label: '配送会社に補償を頼む', tag: 'defend', apply: function (fx) { fx.money(15000, '配送会社の補償'); fx.stat('shin', -3); return R('trouble', '「お店の対応が悪い」って評価がついちゃった…。'); } }
+        { label: '配送会社に補償を頼む', tag: 'defend', apply: function (fx) { fx.money(30000, '配送会社の補償'); fx.stat('shin', -2); return R('trouble', '「お店の対応が悪い」って評価がついちゃった…。'); } }
       ] },
     { id: 's_game_release', months: [11, 12], cond: function (s) { return s.flags.concept !== 'fashion'; }, lines: [N('新しいゲーム機が発売された。古いゲーム機を売りに来る人が増えている。')],
       apply: function (fx) { var g = fx.s.flags.concept === 'gadget'; fx.stat('sho', g ? 5 : 1); fx.stat('shu', g ? 3 : 0); return R(g ? 'joy' : 'normal', g ? 'ゲームのお店としては、大チャンスだね！' : '少しだけ品ぞろえが増えたよ。'); } },
