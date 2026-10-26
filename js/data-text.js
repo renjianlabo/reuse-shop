@@ -43,7 +43,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
     hanro: { word: '販路の拡大', yomi: 'はんろのかくだい', body: '売る場所を増やすこと。ネットなら、お店に来られない遠くの人にも売れる。ただし写真・梱包・発送など、手間とお金も増える。', job: '多くの小売の会社が「お店とネットをどうつなぐか」に取り組んでいる。' },
     toushi: { word: '投資とリスク', yomi: 'とうしとりすく', body: 'お金を借りて大きく勝負すれば、成功したときの見返りは大きい。でも失敗すれば損が残る。手元のお金と、うまくいく見込みを比べて決める。', job: '新しい事業を考えるときも「うまくいかなかったらどうなるか」を一緒に考えると説得力が増す。' }
   };
-  G.TERM_ORDER = ['diff', 'arari', 'zaiko', 'kotei', 'roi', 'kakaku', 'manzoku', 'shikin', 'tanka', 'hito', 'hanro', 'toushi'];
+  G.TERM_ORDER = ['diff', 'arari', 'zaiko', 'kotei', 'roi', 'kakaku', 'hanro', 'shikin', 'tanka', 'hito', 'manzoku', 'toushi'];
 
   G.ENDINGS = {
     bankrupt: {

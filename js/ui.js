@@ -374,12 +374,26 @@
     return '今月は赤字…。売上を上げるか、出ていくお金を減らさないと。';
   }
 
+  // レシートのスクロールバー（入りきらないときだけ出す）
+  function updateRcBar() {
+    var rc = $('receipt'), bar = $('rcBar');
+    var over = rc.scrollHeight - rc.clientHeight;
+    if (over <= 2) { bar.hidden = true; return; }
+    bar.hidden = false;
+    var h = bar.clientHeight, th = Math.max(26, h * rc.clientHeight / rc.scrollHeight);
+    bar.firstChild.style.height = th + 'px';
+    bar.firstChild.style.top = ((h - th) * rc.scrollTop / over) + 'px';
+  }
+  $('receipt').addEventListener('scroll', updateRcBar);
+  window.addEventListener('resize', updateRcBar);
+
   function showReceipt(r) {
     return overlay('ovReceipt', 'btnReceipt', function () {
       var rc = $('receipt');
       rc.style.animation = 'none'; void rc.offsetWidth; rc.style.animation = '';
       rc.innerHTML = receiptHTML(r);
       rc.scrollTop = 0;
+      requestAnimationFrame(updateRcBar); setTimeout(updateRcBar, 1200);
       $('receiptComment').innerHTML = '<b>ミオ</b>' + receiptComment(r);
       $('btnReceipt').textContent = (r.money < 0) ? '結果を見る' : (r.month === 3 ? '1年の結果を見る' : '次の月へ');
     });
@@ -470,7 +484,7 @@
       '<dt>' + (S.bankrupt ? 'それまでの売上' : '1年間の売上') + '</dt><dd>' + G.man(G.annualSales(S)) + '</dd>' +
       '<dt>最後のお金</dt><dd>' + G.man(S.money) + '</dd>' +
       '<dt>集客力 / 商品力 / 信頼</dt><dd>' + S.shu + ' / ' + S.sho + ' / ' + S.shin + '</dd>' +
-      '<dt>見つけた結末</dt><dd>' + seen.length + ' / ' + G.ENDING_ORDER.length + '</dd>';
+      '<dt>これまでに見た結末</dt><dd>' + seen.length + ' / ' + G.ENDING_ORDER.length + '</dd>';
     show('scrEnding');
     $('scrEnding').scrollTop = 0;
     document.querySelector('.ending-body').scrollTop = 0;
@@ -577,7 +591,7 @@
     $('btnContinue').hidden = !(sv && sv.v === 1);
     if (sv && sv.v === 1) $('btnContinue').textContent = '続きから（' + G.MONTHS[sv.s.monthIdx] + '月）';
     var seen = load(SEEN_KEY) || [];
-    $('titleRecord').textContent = seen.length ? '見つけた結末 ' + seen.length + ' / ' + G.ENDING_ORDER.length : '';
+    $('titleRecord').textContent = seen.length ? 'これまでに見た結末 ' + seen.length + ' / ' + G.ENDING_ORDER.length : '';
     show('scrTitle');
   }
 

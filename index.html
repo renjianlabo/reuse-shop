@@ -89,7 +89,10 @@
     <!-- 月末のレシート -->
     <div class="overlay receipt-wrap" id="ovReceipt" hidden>
       <div class="printer"></div>
-      <div class="receipt" id="receipt"></div>
+      <div class="receipt-box">
+        <div class="receipt" id="receipt"></div>
+        <div class="end-bar rc-bar" id="rcBar" hidden><i></i></div>
+      </div>
       <div class="receipt-foot">
         <p class="receipt-comment" id="receiptComment"></p>
         <button class="btn btn-main" id="btnReceipt">次の月へ</button>

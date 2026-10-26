@@ -7,6 +7,11 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
   function L(who, face, text) { return { who: who, face: face, text: text }; }
   var N = function (t) { return L(null, null, t); };
   var M = function (face, t) { return L('mio', face, t); };
+  // 大きな損：保険に入っていれば半分戻る
+  function hit(fx, loss, label) {
+    fx.money(-loss, label);
+    if (fx.s.flags.insured) fx.money(Math.round(loss * 0.8), '保険金');
+  }
   function R(face, text, who) { return { face: face, text: text, who: who === undefined ? 'mio' : who }; }
 
   G.SMALL = [
@@ -152,9 +157,9 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
         { label: '新しいレジを買う（15万円）', tag: 'attack', apply: function (fx) { fx.money(-150000); fx.stat('shin', 1); return R('normal', '会計がスムーズになったよ。'); } },
         { label: '修理する（5万円）', tag: 'defend', apply: function (fx) { fx.money(-50000); if (fx.chance(0.3)) { fx.stat('shu', -2); return R('trouble', 'また止まっちゃった…。お客さんを待たせちゃったよ。'); } return R('normal', '直ってよかった！'); } }
       ] },
-    { id: 's_shoplift', bad: true, lines: [N('万引きの被害にあってしまった。')],
+    { id: 's_shoplift', bad: true, cond: function (s) { return !s.flags.camera; }, lines: [N('万引きの被害にあってしまった。')],
       choices: [
-        { label: '防犯カメラをつける（10万円）', tag: 'defend', apply: function (fx) { fx.money(-40000, '万引きの被害'); fx.money(-100000); fx.stat('shin', 2); return R('normal', 'これで安心してお店に立てるね。'); } },
+        { label: '防犯カメラをつける（10万円）', tag: 'defend', apply: function (fx) { fx.money(-40000, '万引きの被害'); fx.money(-100000); fx.stat('shin', 10); fx.flag('camera', true); fx.note('これからは万引きが起きない', true); return R('normal', 'これで安心してお店に立てるね。'); } },
         { label: '声かけを増やす', tag: 'team', apply: function (fx) { fx.money(-40000, '万引きの被害'); if (fx.s.staff > 0) { fx.stat('shin', 2); return R('smile', 'みんなで声をかけ合ったら、お店の雰囲気もよくなったよ。'); } return R('trouble', 'ひとりだと、なかなか目が届かないね…。'); } }
       ] },
     { id: 's_electric', bad: true, lines: [N('電気代が値上がりした。')],
@@ -207,7 +212,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
     /* ---------- ネット・ジャンル別 ---------- */
     { id: 's_online_rush', cond: function (s) { return !!s.flags.online; }, lines: [N('ネット販売の注文が急に増えた！')],
       apply: function (fx) { fx.money(fx.rand(100000, 250000)); return R('joy', '遠くの人にも届いてる！'); } },
-    { id: 's_online_trouble', bad: true, cond: function (s) { return !!s.flags.online; }, lines: [N('ネットで売った品が、配送中に傷ついてしまった。')],
+    { id: 's_online_trouble', bad: true, weight: 2, cond: function (s) { return s.flags.online === 2 || (s.flags.online === 1 && s.monthIdx % 2 === 0); }, lines: [N('ネットで売った品が、配送中に傷ついてしまった。')],
       choices: [
         { label: '送料を返して、あやまる', tag: 'customer', apply: function (fx) { fx.money(-20000); fx.stat('shin', 2); return R('normal', 'ていねいな対応が、いい評価につながったよ。'); } },
         { label: '配送会社に補償を頼む', tag: 'defend', apply: function (fx) { fx.money(15000, '配送会社の補償'); fx.stat('shin', -3); return R('trouble', '「お店の対応が悪い」って評価がついちゃった…。'); } }
@@ -227,6 +232,30 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
       apply: function (fx) { fx.stat('shu', 4); fx.stat('sho', 2); return R('joy', 'うちの棚にいっぱいあるやつだ！ゲームのお店で正解だったね。'); } },
     { id: 's_general_lost', bad: true, cond: function (s) { return s.flags.concept === 'general'; }, lines: [N('「結局、何のお店なの？」とお客さんに聞かれた。')],
       apply: function (fx) { fx.stat('sho', -2); return R('trouble', '何でもあるのは便利だけど、印象に残りにくいんだね…。'); } },
+
+    /* ---------- 保険の案内（5月に必ず出る） ---------- */
+    { id: 's_insurance', lines: [L('saeki', null, '店長、お店の保険のご案内です。火事や水害、休業になったときの損を補償します。毎月2万円です。')],
+      choices: [
+        { label: '入る（毎月2万円）', tag: 'defend', apply: function (fx) { fx.fixed(20000, '保険料'); fx.flag('insured', true); fx.note('火事・水害・休業の損の8割が戻る', true); return R('normal', '何も起きなければ払い損だけど、いざというときの備えになるね。'); } },
+        { label: '入らない', tag: 'attack', apply: function (fx) { fx.note('毎月2万円を守れる', true); return R('normal', '毎月の出費は増えないね。そのかわり、何か起きたら全部自分でかぶることになるよ。'); } }
+      ] },
+
+    /* ---------- 理不尽な大きなトラブル（7月以降・1回のプレイで2回まで） ---------- */
+    { id: 'd_leak', disaster: true, bad: true, lines: [N('上の階から水漏れ！売り物の一部が濡れてしまった。'), M('surprise', 'うそでしょ…！')],
+      apply: function (fx) { fx.flag('dis', (fx.s.flags.dis || 0) + 1); hit(fx, 400000, '水漏れの損'); fx.stat('sho', -3); return R('trouble', fx.s.flags.insured ? '保険でほとんど戻ってきた。入っておいてよかった…。' : '濡れた品は売れない…。大きな損になっちゃった。'); } },
+    { id: 'd_partner', disaster: true, bad: true, lines: [N('売れ残りをまとめて引き取ってくれていた業者が、突然倒産した。'), M('surprise', '先月分の代金45万円、もう入ってこないって…！')],
+      apply: function (fx) { fx.flag('dis', (fx.s.flags.dis || 0) + 1); fx.money(-450000, '回収できない代金'); return R('trouble', 'こればかりは保険でも戻らない…。取引先が多いほど、こういう危険も分けられるんだけどね。'); } },
+    { id: 'd_fire', disaster: true, bad: true, lines: [N('近所で火事があった。お店は無事だったが、消防の調べとすすの片づけで、1週間お店を開けられない。')],
+      apply: function (fx) { fx.flag('dis', (fx.s.flags.dis || 0) + 1); fx.mod('visitors', 0.75, 1, '火事の影響で1週間休業'); hit(fx, 150000, '片づけと清掃'); if (fx.s.flags.insured) fx.money(300000, '休業の補償'); return R('trouble', fx.s.flags.insured ? '保険から休業の補償も出たよ。助かった…。' : '1週間も開けられないなんて…。今月の売上はかなり減りそう。'); } },
+    { id: 'd_flood', disaster: true, bad: true, months: [7, 8, 9, 10], lines: [N('大型台風が直撃。お店が床上まで浸水してしまった。'), M('surprise', '棚の下の段、全部水につかってる…！')],
+      apply: function (fx) { fx.flag('dis', (fx.s.flags.dis || 0) + 1); hit(fx, 600000, '浸水の損'); fx.mod('visitors', 0.9, 1, '浸水の片づけ'); return R('trouble', fx.s.flags.insured ? '保険でほとんど戻ってくる。入っておいてよかった…。' : '品物も床も、全部やり直し…。大きな出費だよ。'); } },
+    { id: 'd_equip', disaster: true, bad: true, lines: [N('照明と空調が、同じ日に一斉に壊れた。'), M('trouble', '開店のときに買った設備、まとめて寿命が来たみたい…。')],
+      choices: [
+        { label: '新品に替える（35万円）', tag: 'defend', apply: function (fx) { fx.flag('dis', (fx.s.flags.dis || 0) + 1); fx.money(-350000); return R('normal', '大きな出費だけど、これでしばらくは安心だね。'); } },
+        { label: '中古でしのぐ（15万円）', tag: 'attack', apply: function (fx) { fx.flag('dis', (fx.s.flags.dis || 0) + 1); fx.money(-150000); fx.stat('shin', -4); fx.mod('visitors', 0.95, 1, '暗くて暑い店内'); return R('trouble', 'お金はおさえられたけど、店内が暗くて暑いって言われちゃった…。'); } }
+      ] },
+    { id: 'd_fake', disaster: true, bad: true, lines: [N('買い取った品の中に、偽ブランド品がまとめて混じっていたことが分かった。'), M('angry', '売ってしまった分は、全部返金しないと…！')],
+      apply: function (fx) { fx.flag('dis', (fx.s.flags.dis || 0) + 1); fx.money(-300000, '返金'); fx.stat('shin', -5); return R('trouble', '30万円の返金と、信頼の低下…。買い取りのチェック、もっと厳しくしよう。'); } },
 
     /* ---------- ほっこり ---------- */
     { id: 's_mio_snack', lines: [M('smile', '店長、おつかれさま！差し入れのたい焼き、どうぞ。')],

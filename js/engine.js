@@ -12,7 +12,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
     startMoney: START_MONEY,
     startStat: 40,
     rent: 450000,
-    other: 365000,
+    other: 350000,
     staffPay: 180000,
     baseVisitors: 0,
     visitorsPerShu: 16,
@@ -21,7 +21,8 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
     baseCostRate: 0.45,
     noise: 0.10,
     capBase: 1000,
-    capPerStaff: 350
+    capPerStaff: 350,
+    disasterChance: 0.2
   };
 
   /* ---------- 乱数（保存して続きから同じ流れにできるよう、自前で持つ） ---------- */
@@ -193,6 +194,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
         if (s.usedSmall.indexOf(e.id) >= 0 || picked.indexOf(e.id) >= 0) return false;
         if (e.months && e.months.indexOf(m) < 0) return false;
         if (e.cond && !e.cond(s)) return false;
+        if (e.disaster || e.id === 's_insurance') return false;
         // 悪い出来事は1か月に1回まで（運だけで追いつめられないように）
         if (e.bad && picked.some(function (id) { return G.smallById(id).bad; })) return false;
         return true;
@@ -205,6 +207,13 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
         if (r <= 0) { chosen = pool[j]; break; }
       }
       picked.push(chosen.id);
+    }
+    // 5月：保険の案内（必ず出す）
+    if (m === 5 && s.usedSmall.indexOf('s_insurance') < 0 && G.smallById('s_insurance')) picked.unshift('s_insurance');
+    // 7月以降：理不尽な大きなトラブル
+    if (s.monthIdx >= 3 && (s.flags.dis || 0) < 2 && rnd(s) < P.disasterChance) {
+      var ds = G.SMALL.filter(function (e) { return e.disaster && s.usedSmall.indexOf(e.id) < 0 && (!e.cond || e.cond(s)); });
+      if (ds.length) picked.push(ds[Math.floor(rnd(s) * ds.length)].id);
     }
     return picked;
   };
@@ -339,8 +348,8 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
     var storeSales = round1000(visitors * unit);
 
     var online = 0;
-    if (s.flags.online === 2) online = round1000((200000 + s.sho * 7000) * (0.8 + rnd(s) * 0.4));
-    if (s.flags.online === 1) online = round1000((60000 + s.sho * 2500) * (0.8 + rnd(s) * 0.4));
+    if (s.flags.online === 2) online = round1000((200000 + s.sho * 7000) * (0.6 + rnd(s) * 0.8)); // 本格的：大きいがぶれも大きい
+    if (s.flags.online === 1) online = round1000((60000 + s.sho * 2500) * (0.85 + rnd(s) * 0.3));
 
     var extra = 0, extraLabels = [];
     s.extras.forEach(function (e) { extra += e.amount; extraLabels.push(e.label); });
@@ -380,7 +389,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
   };
 
   // スタッフの人数で、1か月に対応できるお客の数が決まる
-  G.capacity = function (s) { return P.capBase + P.capPerStaff * s.staff; };
+  G.capacity = function (s) { return P.capBase + P.capPerStaff * s.staff - (s.flags.online === 2 ? 150 : 0); };
 
   G.nextMonth = function (s) {
     s.monthIdx++;
@@ -404,9 +413,9 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
   };
 
   G.ENDING_RULE = {
-    presidentMin: 60, presidentMoney: 3000000,
-    no1Sales: 30000000, no1Shin: 65, no1Money: 3000000,
-    poorSales: 24000000, poorMoney: 2000000
+    presidentMin: 60, presidentMoney: 2000000,
+    no1Sales: 27000000, no1Shin: 60, no1Money: 2000000,
+    poorSales: 24000000, poorMoney: 1000000
   };
 
   G.diagnose = function (s) {

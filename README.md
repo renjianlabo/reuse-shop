@@ -13,7 +13,7 @@
 | `index.html` / `css/` | 画面 |
 | `js/engine.js` | 計算の仕組み（売上・収支・結末・選ぶ前の見通し） |
 | `js/data-big.js` | 毎月の大きな出来事 |
-| `js/data-small.js` | 小さな出来事（60種類以上） |
+| `js/data-small.js` | 小さな出来事（70種類以上） |
 | `js/data-text.js` | 登場人物・用語メモ・結末・経営タイプ診断 |
 | `js/ui.js` | 画面の動き |
 | `assets/` | イラスト |

@@ -16,6 +16,16 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
   };
   var man = G.man;
 
+  // 11月の借り入れ：お店の信頼で金利が変わる（4か月分の利息の割合）
+  G.loanRate = function (s) { return s.shin >= 70 ? 0.03 : (s.shin >= 50 ? 0.08 : 0.15); };
+  // ネット販売の毎月のもうけの見込み（売上 − 仕入れ − 発送の手伝い）
+  G.onlineEstimate = function (s, lv) {
+    var base = lv === 2 ? 200000 + s.sho * 7000 : 60000 + s.sho * 2500, m = 1 - s.costRate, fee = lv === 2 ? 60000 : 0;
+    var lo = lv === 2 ? 0.6 : 0.85, hi = lv === 2 ? 1.4 : 1.15;
+    var r = function (x) { return Math.round(x / 10000) * 10000; };
+    return { lo: r(base * lo * m - fee), hi: r(base * hi * m - fee) };
+  };
+
   // 6月のまとめ仕入れ：商品力とお店の種類で決まる「売れる割合」の目安
   function bulkRate(s) { return -0.1 + s.sho / 90 + (s.flags.concept === 'fashion' || s.flags.concept === 'gadget' ? 0.08 : 0); }
 
@@ -332,7 +342,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
 
     /* ---------------- 10月 ---------------- */
     {
-      id: 'm10', month: 10, bg: 'shop', title: '壊れた品を売ってしまった', memo: 'manzoku',
+      id: 'm10', month: 2, bg: 'shop', title: '壊れた品を売ってしまった', memo: 'manzoku',
       lines: function (s) {
         var item = s.flags.concept === 'gadget' ? 'ゲーム機' : (s.flags.concept === 'fashion' ? 'コート' : '電気ポット');
         return [
@@ -381,7 +391,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
       id: 'm11', month: 11, bg: 'office', title: '黒字なのにお金が足りない', memo: 'shikin',
       lines: function (s) {
         return [
-          M('surprise', '店長、大変！冬物の仕入れ代と空調の修理代で、来週までに100万円払わないといけないの。'),
+          M('surprise', '店長、大変！' + ({ fashion: '冬物の仕入れ代', gadget: '年末商戦に向けたゲーム機の仕入れ代' }[s.flags.concept] || '冬物と暖房器具の仕入れ代') + 'と空調の修理代で、来週までに100万円払わないといけないの。'),
           M('trouble', 'お店はもうかっているのに、売上が入ってくるのは来月。手元のお金がギリギリかも…。'),
           N('（今の手元のお金：' + man(s.money) + '）')
         ];
@@ -394,9 +404,12 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
         {
           label: '銀行でお金を借りる', tag: 'defend',
           apply: function (fx) {
+            var r = G.loanRate(fx.s);
             fx.note('100万円を借りて支払う', null);
-            fx.loan('銀行の返済', 1000000, 4, 0.04);
-            return { who: 'saeki', text: '銀行の佐伯です。100万円、お貸ししましょう。毎月26万円ずつ、4か月で返していただく形でいかがですか。' };
+            fx.loan('銀行の返済', 1000000, 4, r);
+            fx.note('利息 ' + man(Math.round(1000000 * r / 1000) * 1000), false);
+            var why = r <= 0.03 ? 'お店の評判もいいので、低い金利でお貸しできます。' : (r <= 0.08 ? '実績はこれからですので、金利はふつうになります。' : 'まだ信頼の実績が少ないので、金利は高めになってしまいます。');
+            return { who: 'saeki', text: '銀行の佐伯です。100万円、お貸ししましょう。' + why + '4か月で返していただく形でいかがですか。' };
           }
         },
         {
@@ -414,6 +427,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
           apply: function (fx) {
             if (fx.chance(0.25 + fx.s.shin / 150)) {
               fx.due('待ってもらった支払い', 1000000, 1);
+              fx.note('利息なし・値引きなし', true);
               fx.stat('shin', -2);
               return { face: 'smile', text: '1か月だけ待ってもらえた！そのかわり、来月はちゃんと払わないとね。' };
             }
@@ -552,10 +566,11 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
 
     /* ---------------- 2月 ---------------- */
     {
-      id: 'm2', month: 2, bg: 'shop', title: 'ネット販売を始める？', memo: 'hanro',
+      id: 'm2', month: 10, bg: 'shop', title: 'ネット販売を始める？', memo: 'hanro',
       lines: [
         M('normal', 'お店に来られない遠くの人にも売れたら、もっと広がるよね。'),
-        M('normal', 'ネットでの販売、始めてみる？写真をとったり、梱包したり、手間とお金はかかるけど。')
+        M('normal', 'ネットでの販売、始めてみる？写真をとったり、梱包したり、手間とお金はかかるけど。'),
+        M('normal', '本格的にやるなら売上は大きいけど、発送作業でお店の手がとられるし、トラブルも増えるよ。')
       ],
       hint: function (s) {
         return s.sho >= 55 ? 'うちの品ぞろえなら、ネットでも目立てそう！' : 'ネットはライバルがすごく多いから、品ぞろえが弱いと埋もれちゃうかも。';
@@ -564,21 +579,28 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
         {
           label: '本格的に始める（50万円）', tag: 'attack',
           apply: function (fx) {
+            var e = G.onlineEstimate(fx.s, 2);
             fx.money(-500000); fx.flag('online', 2); fx.fixed(60000, '発送の手伝い'); fx.stat('shu', 3);
-            return { face: 'smile', text: '撮影の道具も発送の準備もばっちり！来月からネットの売上が入ってくるよ。' };
+            fx.note('ネットのもうけ 来月から毎月 約+' + man(e.lo) + '〜+' + man(e.hi), true);
+            fx.note('発送作業で対応できるお客 −150人', false);
+            fx.note('配送トラブルが起きやすい', false);
+            return { face: 'smile', text: '撮影の道具も発送の準備もばっちり！来月からネットの売上が入ってくるよ。そのぶん、お店の手は少し回りにくくなるけどね。' };
           }
         },
         {
           label: '少しだけ試す（10万円）', tag: 'defend',
           apply: function (fx) {
+            var e = G.onlineEstimate(fx.s, 1);
             fx.money(-100000); fx.flag('online', 1);
-            return { face: 'normal', text: 'まずは小さく試して、手ごたえを見てみよう。' };
+            fx.note('ネットのもうけ 来月から毎月 約+' + man(e.lo) + '〜+' + man(e.hi), true);
+            return { face: 'normal', text: 'まずは小さく試して、手ごたえを見てみよう。お店の仕事にもほとんど影響しないよ。' };
           }
         },
         {
-          label: '今はやらない', tag: 'defend',
-          apply: function () {
-            return { face: 'normal', text: 'まずはお店をしっかりさせるのも、大事な判断だね。' };
+          label: '今はお店に集中する', tag: 'defend',
+          apply: function (fx) {
+            fx.stat('shin', 2);
+            return { face: 'normal', text: 'まずはお店をしっかりさせるのも、大事な判断だね。目の前のお客さんにじっくり向き合えるよ。' };
           }
         }
       ]

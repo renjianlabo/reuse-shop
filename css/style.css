@@ -303,11 +303,11 @@ button { font: inherit; color: inherit; }
 .receipt-wrap { background: rgba(10, 20, 18, .78); flex-direction: column; justify-content: flex-start; padding-top: 16px; }
 .printer { width: 92%; height: 14px; background: #3C4744; border-radius: 7px; position: relative; z-index: 2; }
 .receipt {
-  width: 84%; margin-top: -7px;
-  max-height: calc(100% - 170px); overflow: auto;
+  width: 100%;
+  max-height: 100%; overflow: auto; scrollbar-width: none;
   background: var(--paper); color: var(--print);
-  font-family: var(--f-receipt); font-size: 14px; line-height: 1.7;
-  padding: 18px 16px 22px;
+  font-family: var(--f-receipt); font-size: 13.5px; line-height: 1.55;
+  padding: 14px 22px 20px 16px;
   /* ギザギザの下端 */
   -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 8px) no-repeat, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 16px 8px repeat-x;
           mask: linear-gradient(#000 0 0) top / 100% calc(100% - 8px) no-repeat, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 16px 8px repeat-x;
@@ -315,11 +315,15 @@ button { font: inherit; color: inherit; }
   transform-origin: top;
 }
 @keyframes print { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
-.receipt h3 { font-weight: 400; text-align: center; margin: 0 0 4px; font-size: 16px; }
-.receipt .r-sub { text-align: center; margin: 0 0 10px; font-size: 12px; }
+.receipt::-webkit-scrollbar { display: none; }
+.receipt-box { position: relative; width: 84%; margin-top: -7px; flex: 0 1 auto; min-height: 0; display: flex; }
+.receipt-wrap { padding-bottom: 14px; }
+.receipt-foot { padding-top: 10px; }
+.receipt h3 { font-weight: 400; text-align: center; margin: 0 0 2px; font-size: 16px; }
+.receipt .r-sub { text-align: center; margin: 0 0 6px; font-size: 12px; }
 .receipt .row { display: flex; justify-content: space-between; gap: 10px; }
 .receipt .row span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
-.receipt .rule { border-top: 1.5px dashed #9A9A9A; margin: 8px 0; }
+.receipt .rule { border-top: 1.5px dashed #9A9A9A; margin: 6px 0; }
 .receipt .total { font-size: 17px; }
 .receipt .neg { color: var(--minus); }
 .receipt .note { font-size: 12px; margin-top: 8px; }
@@ -456,3 +460,5 @@ button { font: inherit; color: inherit; }
 .end-bar[hidden] { display: none; }
 .ending-screen[data-v="a"] .ending-body { padding-right: 26px; scrollbar-width: none; }
 .ending-screen[data-v="a"] .ending-body::-webkit-scrollbar { display: none; }
+
+.rc-bar { top: 14px; bottom: 22px; right: 5px; }
