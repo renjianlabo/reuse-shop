@@ -428,6 +428,8 @@
       $('chips').innerHTML = '';
       await monthCard(S, ev);
       await playEvent(G.val(ev.lines, S));
+      var baseD = G.applyBase(S, ev);
+      if (baseD) { renderHud(S, true); await say({ who: null, text: ev.baseText }, chipsFor(baseD)); }
       setChara('mio', 'think');
       var idx = await choose(ev, ev.hint ? ev.hint(S) : null, false);
       var res = G.applyChoice(S, ev, idx);

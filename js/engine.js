@@ -171,11 +171,21 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
       months: months, capped: ra.lost > 0 && ra.visitors === rb.visitors && added.some(function (m) { return m.kind === 'visitors' && m.value > 1; }) };
   };
 
+  // 選ぶ前に起きる効果（例：チェーン店ができてお客が流れる）を先に済ませる
+  G.applyBase = function (s, ev) {
+    if (!ev.base) return null;
+    var fx = makeFx(s);
+    ev.base(fx);
+    s.baseDone = true;
+    return fx.deltas;
+  };
+
   G.applyChoice = function (s, ev, idx) {
     var nMods = s.mods.length;
     var fx = makeFx(s);
     var c = ev.choices[idx];
-    if (ev.base) ev.base(fx);
+    if (ev.base && !s.baseDone) ev.base(fx); // 画面では選ぶ前に済ませている
+    s.baseDone = false;
     fx.tag(c.tag);
     var res = c.apply(fx) || {};
     if (ev.memo && s.terms.indexOf(ev.memo) < 0) s.terms.push(ev.memo);

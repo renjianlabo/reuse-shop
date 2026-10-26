@@ -305,6 +305,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
         M('normal', 'このままだとじり貧だよ。どう戦う？')
       ],
       base: function (fx) { fx.stat('shu', -8); },
+      baseText: 'チェーン店にお客さんが流れて、集客力が下がった。',
       hint: function (s) {
         return s.flags.concept === 'general' ? '向こうも「何でも屋」。同じ土俵で戦うと苦しいかも…' : 'うちには得意分野がある。そこは負けないはず！';
       },
