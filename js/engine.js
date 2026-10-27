@@ -350,10 +350,11 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
   /* ---------- 月末の収支 ---------- */
   G.settle = function (s) {
     var m = G.month(s);
-    var vMult = 1, capMult = 1, uMult = 1, costAdd = 0, modLabels = [];
+    var vMult = 1, capMult = 1, uMult = 1, costAdd = 0, storeCostMult = 1, modLabels = [];
     s.mods.forEach(function (md) {
       if (md.kind === 'visitors') { vMult *= md.value; if (md.value < 1) capMult *= md.value; } // 休みや天気は、対応できる人数も減らす
       if (md.kind === 'cost') costAdd += md.value;
+      if (md.kind === 'storeCost') storeCostMult *= md.value; // お店だけの値引き：仕入れの割合をお店の売上だけ上げる
       if (md.kind === 'unit') uMult *= md.value; // 値引きやまとめ買いで、1人あたりの金額が変わる
       modLabels.push(md.label);
     });
@@ -373,7 +374,7 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
     s.extras.forEach(function (e) { extra += e.amount; extraLabels.push(e.label); });
 
     var costRate = clamp(s.costRate + costAdd, 0.25, 0.8);
-    var cost = round1000((storeSales + online) * costRate);
+    var cost = round1000(storeSales * costRate * storeCostMult + online * costRate);
     // ユイは学生アルバイトなので、給料は月12万円
     var staffPay = s.staff * P.staffPay - (s.flags.yui && s.staff > 0 ? 60000 : 0);
     var ship = olv === 2 ? 60000 : 0; // 本格的なネット販売：発送の手伝い
