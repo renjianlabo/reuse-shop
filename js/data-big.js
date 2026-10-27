@@ -33,6 +33,12 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
   function quitter(s) { return s.flags.yui && s.staff === 1 ? 'yui' : 'other'; }
   function leave(fx) { if (quitter(fx.s) === 'yui') fx.flag('yui', false); fx.staff(-1); }
 
+  // 11月：先月が黒字か（0円は黒字にしない）、払うと手元が苦しくなるか
+  function m11Case(s) {
+    var last = s.history[s.history.length - 1], p = last ? last.profit : 1;
+    return { plus: p > 0, zero: p === 0, tight: s.money < 2000000 };
+  }
+
   function L(who, face, text) { return { who: who, face: face, text: text }; }
   var N = function (t) { return L(null, null, t); };
   var M = function (face, t) { return L('mio', face, t); };
@@ -394,15 +400,19 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
 
     /* ---------------- 11月 ---------------- */
     {
-      id: 'm11', month: 11, bg: 'office', title: '黒字なのにお金が足りない', titleMinus: 'お金が足りない！', memo: 'shikin',
+      id: 'm11', month: 11, bg: 'office', memo: 'shikin',
+      // 先月の収支と手元のお金で、題名とセリフを変える（数字と言葉をそろえる）
+      title: function (s) { var c = m11Case(s); return c.plus && c.tight ? '黒字なのにお金が足りない' : '大きな支払いが来た'; },
       lines: function (s) {
-        // 先月のレシートが赤字なら「もうかっているのに」とは言わない
-        var last = s.history[s.history.length - 1];
-        var plus = !last || last.profit >= 0;
+        var c = m11Case(s), soon = '今月の売上が手元にそろうのは月末だから、来週の支払いには使えないの。';
+        var talk;
+        if (c.plus && c.tight) talk = M('trouble', 'お店はもうかっているのに、' + soon + '手元のお金がギリギリかも…。');
+        else if (c.plus) talk = M('normal', 'お店はもうかっているし、手元のお金で払えなくはない。でも、' + soon + '今払うと、手元のお金がぐっと減っちゃうね。');
+        else if (c.tight) talk = M('trouble', (c.zero ? '先月はもうけが出なくて' : '先月は赤字で') + '、手元のお金も減ってきてる。' + soon + 'このままだと払えないかも…。');
+        else talk = M('normal', (c.zero ? '先月はもうけが出なかった' : '先月は赤字だった') + 'けど、手元のお金にはまだ余裕がある。でも、' + soon + '今払うと、残りがぐっと減っちゃうね。');
         return [
           M('surprise', '店長、大変！' + ({ fashion: '冬物の仕入れ代', gadget: '年末商戦に向けたゲーム機の仕入れ代' }[s.flags.concept] || '冬物と暖房器具の仕入れ代') + 'と空調の修理代で、来週までに100万円払わないといけないの。'),
-          plus ? M('trouble', 'お店はもうかっているのに、売上が入ってくるのは来月。手元のお金がギリギリかも…。')
-            : M('trouble', '先月は赤字で、手元のお金も減ってきてる。今月の売上が入るのは来月だし、このままだと払えないかも…。'),
+          talk,
           N('（今の手元のお金：' + man(s.money) + '）')
         ];
       },
@@ -464,10 +474,13 @@ var GAME = (typeof GAME !== 'undefined') ? GAME : {};
           label: '全品20%引きの大セール', tag: 'attack',
           apply: function (fx) {
             fx.mod('visitors', 1.5, 1, '大セール');
+            // 20%安くなるぶん、つい多めに買うので（品数1.1倍）1人あたりの金額は 0.8×1.1＝0.88倍
             fx.mod('unit', 0.88, 1, '値引きで1人あたりの金額が下がった');
-            fx.mod('cost', 0.06, 1, '大きな値引き');
+            // 仕入れ値は同じで売る値段が0.8倍なので、売上に対する仕入れの割合は 1/0.8 倍になる
+            fx.mod('cost', Math.round(fx.s.costRate * 0.25 * 100) / 100, 1, '20%引き');
+            fx.note('20%引き：品数は増えるが、1人あたりの金額は約12%減', null);
             fx.stat('sho', -2); fx.stat('shu', 6);
-            return { face: 'surprise', text: 'お客さんがすごい数！初めて来てくれた人も多いよ。…でも値引きのぶん1人あたりの金額が下がって、思ったほど売上は伸びないかも。' };
+            return { face: 'surprise', text: 'お客さんがすごい数！初めて来てくれた人も多いよ。安いからつい多めに買ってくれるけど、20%引きだから1人あたりの金額は1割ちょっと下がっちゃう。1つ売れたときのもうけも減るから、思ったほどもうからないかも。' };
           }
         },
         {
